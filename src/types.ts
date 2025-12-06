@@ -24,6 +24,13 @@ export interface Message {
   metrics?: MessageMetrics;
 }
 
+export interface Session {
+  id: string;
+  title: string;
+  created_at: string;
+  updated_at?: string;
+}
+
 export enum AppMode {
   CHAT = 'chat',
   VISION = 'vision'

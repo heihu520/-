@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Upload, Image as ImageIcon, Sparkles, X, Loader2, Bot, ScanEye, ChevronDown } from 'lucide-react';
 import { analyzeImage } from '../services/geminiService';

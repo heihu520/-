@@ -1,5 +1,5 @@
 {
   "name": "Gemini Nexus",
-  "description": "一个高性能、未来感的界面，用于与谷歌 Gemini 2.5 Flash 模型进行文本和视觉任务交互。",
+  "description": "A high-performance, futuristic interface for interacting with Google Gemini models for text and vision tasks.",
   "requestFramePermissions": []
 }
