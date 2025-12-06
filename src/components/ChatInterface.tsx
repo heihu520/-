@@ -54,7 +54,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
       if (history.length > 0) {
         setMessages(history);
       } else {
-        // Fallback if empty session
          setMessages([]);
       }
       setIsLoadingHistory(false);
@@ -95,24 +94,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({
         activeSessionId = newSession.id;
         internalSessionId.current = newSession.id;
         onSessionCreated(newSession); // Update parent state
+      } else {
+        console.warn("Could not create session. Chat will not be saved.");
+        alert("无法连接到数据库！\n请确保后端服务 (npm run server) 已启动。\n您的消息将不会被保存。");
       }
     }
 
     // 2. Add User Message to UI & Save to DB
     const userMessage: Message = {
-      id: Date.now().toString(), // Temp ID, will be replaced by DB potentially but okay for now
+      id: Date.now().toString(), 
       role: Role.USER,
       content: userMessageContent,
       timestamp: startTime,
       metrics: { startTime }
     };
 
-    setMessages(prev => [...prev.filter(m => m.id !== 'welcome'), userMessage]); // Remove welcome message on first chat
+    setMessages(prev => [...prev.filter(m => m.id !== 'welcome'), userMessage]); 
 
     if (activeSessionId) {
-      // Run save in background
       api.saveMessage(activeSessionId, userMessage);
-      // Also update title if it's the very first message? (Handled by createSession logic mostly)
     }
 
     // 3. Prepare Bot Placeholder

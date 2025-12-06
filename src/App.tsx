@@ -4,7 +4,7 @@ import { AppMode, ModelId, MODELS, Session } from './types';
 import { ChatInterface } from './components/ChatInterface';
 import { VisionInterface } from './components/VisionInterface';
 import { AboutModal } from './components/AboutModal';
-import { MessageSquare, Image, Zap, Menu, X, Info, MapPin, Globe, Activity, Loader2, Wifi, Plus, Trash2, MessageCircle } from 'lucide-react';
+import { MessageSquare, Image, Zap, Menu, X, Info, MapPin, Globe, Activity, Loader2, Wifi, Plus, Trash2, Database, RotateCw } from 'lucide-react';
 import { api } from './services/apiService';
 
 interface UserLocation {
@@ -29,18 +29,41 @@ export default function App() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
+  
+  // DB Status
+  const [dbStatus, setDbStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking');
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
 
-  // Load Sessions on mount
+  // Load Sessions and Check DB Health on mount
   useEffect(() => {
-    loadSessions();
+    checkHealthAndLoadSessions();
   }, []);
+
+  const checkHealthAndLoadSessions = async () => {
+    setDbStatus('checking');
+    // 1. Check DB Health - Direct URL
+    try {
+      const health = await fetch('http://localhost:3001/api/health').then(res => res.json()).catch(() => null);
+      if (health && health.status === 'ok') {
+        setDbStatus('connected');
+        // 2. Load Sessions only if connected
+        loadSessions();
+      } else {
+        setDbStatus('disconnected');
+        console.warn("Backend API not reachable or DB disconnected");
+      }
+    } catch (e) {
+      setDbStatus('disconnected');
+    }
+  };
 
   const loadSessions = async () => {
     setIsLoadingSessions(true);
     const data = await api.getSessions();
-    setSessions(data);
+    if (Array.isArray(data)) {
+        setSessions(data);
+    }
     setIsLoadingSessions(false);
   };
 
@@ -81,7 +104,6 @@ export default function App() {
           if (!res.ok) throw new Error(`Status ${res.status}`);
           return await res.json();
         } catch (e) {
-          console.warn(`Failed to fetch from ${url}`, e);
           return null;
         }
       };
@@ -100,7 +122,6 @@ export default function App() {
         setLoadingLocation(false);
         return;
       }
-      // Fallbacks skipped for brevity, keeping simple logic here for update
       setLoadingLocation(false);
     };
     fetchLocation();
@@ -155,9 +176,20 @@ export default function App() {
 
         {/* Session List */}
         <div className="flex-1 overflow-y-auto px-4 py-2 custom-scrollbar space-y-1">
-          <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 px-2">历史记录</div>
+          <div className="flex items-center justify-between px-2 mb-3">
+             <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">历史记录</div>
+             {/* DB Status Indicator Tiny */}
+             {dbStatus === 'disconnected' && (
+               <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" title="数据库断开" />
+             )}
+          </div>
+          
           {isLoadingSessions ? (
             <div className="flex justify-center p-4"><Loader2 className="animate-spin text-slate-400" /></div>
+          ) : dbStatus === 'disconnected' ? (
+             <div className="text-center text-xs text-red-400 py-4 bg-red-50 rounded-lg border border-red-100 mx-1">
+                无法连接数据库<br/>仅支持临时对话
+             </div>
           ) : sessions.length === 0 ? (
             <div className="text-center text-sm text-slate-400 py-8">暂无历史记录</div>
           ) : (
@@ -189,10 +221,32 @@ export default function App() {
         </div>
 
         {/* Footer Info */}
-        <div className="mt-auto p-6 space-y-4 bg-white/20 backdrop-blur-sm border-t border-white/20">
+        <div className="mt-auto p-6 space-y-3 bg-white/20 backdrop-blur-sm border-t border-white/20">
+           
+           {/* DB Connection Status Widget - Clickable to Retry */}
+           <button 
+             onClick={checkHealthAndLoadSessions}
+             disabled={dbStatus === 'checking'}
+             className={`w-full flex items-center gap-2 text-xs px-2 py-1.5 rounded-lg border transition-all active:scale-95 ${
+               dbStatus === 'connected' ? 'bg-emerald-50/50 text-emerald-600 border-emerald-100 hover:bg-emerald-100/50' :
+               dbStatus === 'disconnected' ? 'bg-red-50/50 text-red-600 border-red-100 hover:bg-red-100/50' :
+               'bg-slate-50/50 text-slate-500 border-slate-100'
+             }`}
+             title="点击重试连接"
+           >
+             <Database size={12} />
+             <span className="font-medium">
+                {dbStatus === 'connected' ? '数据库已连接' : 
+                 dbStatus === 'disconnected' ? '未连接 (点击重试)' : '连接中...'}
+             </span>
+             {dbStatus === 'checking' && <Loader2 size={10} className="ml-auto animate-spin" />}
+             {dbStatus === 'connected' && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500" />}
+             {dbStatus === 'disconnected' && <RotateCw size={10} className="ml-auto" />}
+           </button>
+
            {/* Simple Location Display */}
            {location && (
-             <div className="flex items-center justify-between text-xs text-slate-500">
+             <div className="flex items-center justify-between text-xs text-slate-500 px-1">
                <div className="flex items-center gap-1.5">
                  <Globe size={12} />
                  <span>{location.city}</span>
@@ -203,7 +257,7 @@ export default function App() {
 
           <button 
             onClick={() => setIsAboutOpen(true)}
-            className="w-full flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors"
+            className="w-full flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors pt-2"
           >
             <Info size={16} /> 关于项目
           </button>

@@ -1,9 +1,8 @@
 import { Session, Message } from '../types';
 
-// Use relative path. 
-// In Dev: Vite proxy forwards /api -> http://localhost:3001/api
-// In Prod: Nginx should forward /api -> http://localhost:3001/api or serve from same origin
-const API_BASE = '/api';
+// Use absolute path for local development to avoid proxy issues.
+// Ensure your backend is running on port 3001.
+const API_BASE = 'http://localhost:3001/api';
 
 export const api = {
   // Get all sessions
